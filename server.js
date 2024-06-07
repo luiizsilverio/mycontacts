@@ -2,8 +2,12 @@ import dotenv from "dotenv";
 import express from "express";
 import contactRouter from "./routes/contact-routes.js";
 import errorHandler from "./middleware/error-handler.js";
+import connectDb from "./config/dbConnection.js";
 
 dotenv.config();
+
+connectDb();
+
 const app = express();
 
 app.use(express.json());

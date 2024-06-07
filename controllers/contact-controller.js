@@ -1,12 +1,15 @@
 import asyncHandler from "express-async-handler";
 
+import { Contact } from "../models/contact-model.js";
+
 /**
  * @desc Get all contacts
  * @route GET /api/contacts
  * @access public
  */
 const getAllContacts = asyncHandler(async (req, res) => {
-  return res.json({ message: "Get all contacts" });
+  const contacts = await Contact.find();
+  return res.json(contacts);
 })
 
 /**
@@ -15,7 +18,16 @@ const getAllContacts = asyncHandler(async (req, res) => {
  * @access public
  */
 const getContact = asyncHandler(async (req, res) => {
-  res.json({ message: `Get contact for ${req.params.id}` });
+  const { id } = req.params;
+
+  const contact = await Contact.findById(id);
+
+  if (!contact) {
+    res.status(404);
+    throw new Error("Contato não encontrado");
+  }
+
+  res.json(contact);
 })
 
 /**
@@ -31,7 +43,13 @@ const createContact = asyncHandler(async (req, res) => {
     throw new Error("Informe os campos name, email e phone.");
   }
 
-  res.status(201).json({ message: "Create contact" });
+  const contact = await Contact.create({
+    name,
+    email,
+    phone
+  })
+
+  res.status(201).json(contact);
 })
 
 /**
@@ -40,7 +58,32 @@ const createContact = asyncHandler(async (req, res) => {
  * @access public
  */
 const updateContact = asyncHandler(async (req, res) => {
-  res.json({ message: `Update contact for ${req.params.id}` });
+  const { id } = req.params;
+  const { name, email, phone } = req.body;
+
+  if (!name || !email || !phone) {
+    res.status(400);
+    throw new Error("Informe os campos name, email e phone.");
+  }
+
+  const contactExists = await Contact.findById(id, {
+    select: {
+      id: true,
+    }
+  });
+
+  if (!contactExists) {
+    res.status(404);
+    throw new Error("Contato não encontrado");
+  }
+
+  const contact = await Contact.findByIdAndUpdate(
+    id, 
+    req.body,
+    { new: true }
+  )
+
+  res.json(contact);
 })
 
 /**
