@@ -1,4 +1,5 @@
 import { Router } from "express";
+import validateToken from "../middleware/validate-token.js";
 
 import { 
   createContact, 
@@ -9,6 +10,8 @@ import {
 } from "../controllers/contact-controller.js";
 
 const router = Router();
+
+router.use(validateToken);
 
 router
   .get('/', getAllContacts)

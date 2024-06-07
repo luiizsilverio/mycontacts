@@ -5,17 +5,17 @@ import { Contact } from "../models/contact-model.js";
 /**
  * @desc Get all contacts
  * @route GET /api/contacts
- * @access public
+ * @access private
  */
 const getAllContacts = asyncHandler(async (req, res) => {
-  const contacts = await Contact.find();
+  const contacts = await Contact.find({ user_id: req.user.id });
   return res.json(contacts);
 })
 
 /**
  * @desc Get a contact
  * @route GET /api/contacts/:id
- * @access public
+ * @access private
  */
 const getContact = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -33,7 +33,7 @@ const getContact = asyncHandler(async (req, res) => {
 /**
  * @desc Create a contact
  * @route POST /api/contacts/:id
- * @access public
+ * @access private
  */
 const createContact = asyncHandler(async (req, res) => {
   const { name, email, phone } = req.body;
@@ -46,7 +46,8 @@ const createContact = asyncHandler(async (req, res) => {
   const contact = await Contact.create({
     name,
     email,
-    phone
+    phone,
+    user_id: req.user.id
   })
 
   res.status(201).json(contact);
@@ -55,7 +56,7 @@ const createContact = asyncHandler(async (req, res) => {
 /**
  * @desc Update a contact
  * @route PUT /api/contacts/:id
- * @access public
+ * @access private
  */
 const updateContact = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -66,21 +67,22 @@ const updateContact = asyncHandler(async (req, res) => {
     throw new Error("Informe os campos name, email e phone.");
   }
 
-  const contactExists = await Contact.findById(id, {
-    select: {
-      id: true,
-    }
-  });
+  const contactExists = await Contact.findById(id);
 
   if (!contactExists) {
     res.status(404);
     throw new Error("Contato não encontrado");
   }
 
+  if (contactExists.user_id.toString() !== req.user.id) {
+    res.status(403);
+    throw new Error("Você não tem permissão para alterar contatos de outro usuário");
+  }
+
   const contact = await Contact.findByIdAndUpdate(
     id, 
     req.body,
-    { new: true }
+    { new: true } // retorna o documento atualizado
   )
 
   res.json(contact);
@@ -89,10 +91,26 @@ const updateContact = asyncHandler(async (req, res) => {
 /**
  * @desc Delete a contact
  * @route DELETE /api/contacts/:id
- * @access public
+ * @access private
  */
 const deleteContact = asyncHandler(async (req, res) => {
-  res.json({ message: `Delete contact for ${req.params.id}` });
+  const { id } = req.params;
+
+  const contact = await Contact.findById(id);
+
+  if (!contact) {
+    res.status(404);
+    throw new Error("Contato não encontrado");
+  }
+
+  if (contact.user_id.toString() !== req.user.id) {
+    res.status(403);
+    throw new Error("Você não tem permissão para excluir contatos de outro usuário");
+  }
+
+  await Contact.findByIdAndDelete(id);
+
+  res.json(contact);
 })
 
 export { getAllContacts, getContact, createContact, updateContact, deleteContact }
